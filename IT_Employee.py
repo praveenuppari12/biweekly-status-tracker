@@ -5,6 +5,7 @@ from typing import Optional
 import pandas as pd
 import streamlit as st
 
+
 import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "status_app.db")
@@ -144,6 +145,50 @@ def get_user_update(user_id: int, period_label: str):
 def get_tasks_for_update(update_id: int):
     conn = get_connection()
     cur = conn.cursor()
+
+    cur.execute(
+        "SELECT * FROM tasks WHERE update_id = ? ORDER BY id",
+        (update_id,),
+    )
+
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+def delete_update(user_id: int, period_label: str):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        "SELECT id FROM updates WHERE user_id = ? AND period_label = ?",
+        (user_id, period_label),
+    )
+    row = cur.fetchone()
+
+    if row:
+        update_id = row["id"]
+        cur.execute("DELETE FROM tasks WHERE update_id = ?", (update_id,))
+        cur.execute("DELETE FROM updates WHERE id = ?", (update_id,))
+        conn.commit()
+
+    conn.close()
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        "SELECT id FROM updates WHERE user_id = ? AND period_label = ?",
+        (user_id, period_label),
+    )
+    row = cur.fetchone()
+
+    if row:
+        update_id = row["id"]
+        cur.execute("DELETE FROM tasks WHERE update_id = ?", (update_id,))
+        cur.execute("DELETE FROM updates WHERE id = ?", (update_id,))
+        conn.commit()
+
+    conn.close()
+    conn = get_connection()
+    cur = conn.cursor()
     cur.execute(
         "SELECT * FROM tasks WHERE update_id = ? ORDER BY id",
         (update_id,),
@@ -269,8 +314,14 @@ def logout():
 
 # ---------- UI ----------
 def login_page():
-    st.title("Biweekly IT Status Tracker")
-    st.caption("Employees submit updates. Managers can see the whole team's status.")
+    col1, col2 = st.columns([1, 4])
+
+    with col1:
+        st.image("logo.png", width=200)
+
+    with col2:
+        st.title("Biweekly IT Status Tracker")
+        st.caption("Employees submit updates. Managers can see the whole team's status.")
 
     with st.form("login_form"):
         username = st.text_input("Username")
@@ -302,6 +353,47 @@ def employee_dashboard(user):
     st.markdown(f"### 📅 {selected_period}")
 
     existing = get_user_update(user["id"], selected_period)
+    if "edit_mode" not in st.session_state:
+        st.session_state.edit_mode = False
+
+    if existing:
+        col1, col2, col3 = st.columns([1, 1, 1])
+
+        with col1:
+            if st.button("👁️ View Submitted Data"):
+                st.session_state.edit_mode = False
+
+        with col2:
+            if st.button("✏️ Edit / Resubmit"):
+                st.session_state.edit_mode = True
+
+        with col3:
+            if st.button("🗑️ Delete Submission"):
+                delete_update(user["id"], selected_period)
+                st.session_state.edit_mode = False
+                st.success("Submission deleted successfully.")
+                st.rerun()
+    if existing and not st.session_state.edit_mode:
+        st.subheader("📄 Your Submitted Data")
+
+        st.markdown(f"**Accomplishments:** {existing['accomplishments']}")
+
+        tasks = get_tasks_for_update(existing["id"])
+
+        for t in tasks:
+            st.markdown(f"""
+            **Task:** {t['task_name']}  
+            **Description:** {t['description']}  
+            **Blockers:** {t['blockers']}  
+            **Status:** {t['overall_status']}
+            """)
+
+        return  # stops form from showing
+    if existing:
+       st.success("You have already submitted for this biweekly period. You can edit and resubmit your update below.")
+       st.info(f"Last submitted: {existing['submitted_at']}")
+    else:
+        st.info("No submission yet for this biweekly period.")
 
     existing_tasks = []
     if existing:
@@ -428,7 +520,7 @@ def employee_dashboard(user):
 
             st.markdown("---")
 
-        submitted = st.form_submit_button("Save Update")
+        submitted = st.form_submit_button("Submit / Resubmit Update")
 
     # Store the exact clicked task index, then rerun
     if remove_index is not None:
@@ -453,7 +545,7 @@ def employee_dashboard(user):
                 accomplishments,
                 valid_tasks,
             )
-            st.success(f"Update saved for {selected_period}")
+            st.success(f"Update submitted successfully for {selected_period}")
             st.rerun()
 
     if existing:

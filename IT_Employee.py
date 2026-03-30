@@ -4,6 +4,7 @@ from typing import Optional
 
 import pandas as pd
 import streamlit as st
+import uuid
 
 
 import os
@@ -196,7 +197,23 @@ def delete_update(user_id: int, period_label: str):
     rows = cur.fetchall()
     conn.close()
     return rows
+def update_password(user_id: int, new_password: str):
+    conn = get_connection()
+    cur = conn.cursor()
 
+    cur.execute(
+        "UPDATE users SET password = ? WHERE id = ?",
+        (new_password, user_id),
+    )
+
+    conn.commit()
+    conn.close()
+
+
+# EXISTING CODE (do not touch)
+def save_update_with_tasks(user_id: int, period_label: str, accomplishments: str, tasks: list[dict]):
+    conn = get_connection()
+    cur = conn.cursor()
 
 def save_update_with_tasks(user_id: int, period_label: str, accomplishments: str, tasks: list[dict]):
     conn = get_connection()
@@ -340,10 +357,15 @@ def login_page():
 
     with st.expander("Demo Credentials"):
         st.write("Manager: manager / manager123")
-        st.write("Employee: john / john123")
-        st.write("Employee: priya / priya123")
-        st.write("Employee: alex / alex123")
-
+        st.write("Employee: p.uppari@gotion.com / Temp@123")
+        st.write("Employee: v.pathuri@gotion.com / Temp@123")
+        st.write("Employee: v.taduru@gotion.com / Temp@123")
+        st.write("Employee: a.ghanem@gotion.com / Temp@123")
+        st.write("Employee: l.wadley@gotion.com / Temp@123")
+        st.write("Employee: d.faulkner@gotion.com / Temp@123")
+        st.write("Employee: g.yan@gotion.com / Temp@123")
+        st.write("Employee: l.wang10@gotion.com / Temp@123")
+        
 
 def employee_dashboard(user):
     st.subheader("My Biweekly Status Update")
@@ -394,7 +416,7 @@ def employee_dashboard(user):
        st.info(f"Last submitted: {existing['submitted_at']}")
     else:
         st.info("No submission yet for this biweekly period.")
-
+    
     existing_tasks = []
     if existing:
         existing_tasks = get_tasks_for_update(existing["id"])
@@ -413,6 +435,7 @@ def employee_dashboard(user):
         if existing_tasks:
             st.session_state.task_items = [
                 {
+                    "id": str(uuid.uuid4()),
                     "task_name": t["task_name"] or "",
                     "description": t["description"] or "",
                     "blockers": t["blockers"] or "",
@@ -421,14 +444,15 @@ def employee_dashboard(user):
                 for t in existing_tasks
             ]
         else:
-            st.session_state.task_items = [
-                {
-                    "task_name": "",
-                    "description": "",
-                    "blockers": "",
-                    "overall_status": "In Progress",
+           st.session_state.task_items = [
+               {
+                   "id": str(uuid.uuid4()),
+                   "task_name": "",
+                   "description": "",
+                   "blockers": "",
+                   "overall_status": "In Progress",
                 }
-            ]
+]
         st.session_state.loaded_period = selected_period
 
     # Remove the exact clicked task BEFORE drawing the form
@@ -437,12 +461,13 @@ def employee_dashboard(user):
     if st.button("➕ Add Task"):
         st.session_state.task_items.append(
             {
+                "id": str(uuid.uuid4()),
                 "task_name": "",
                 "description": "",
                 "blockers": "",
                 "overall_status": "In Progress",
             }
-        )
+    )
         st.rerun()
 
     with st.form("employee_form", clear_on_submit=False):
@@ -455,9 +480,10 @@ def employee_dashboard(user):
 
         overall_status_options = ["Completed", "In Progress", "Blocked"]
         tasks_data = []
-        remove_index = None
+        remove_task_id = None
 
         for i, task in enumerate(st.session_state.task_items):
+            task_id = task["id"]
             col_task, col_remove = st.columns([8, 1])
 
             task_title = task["task_name"].strip() if task["task_name"].strip() else f"Task {i + 1}"
@@ -471,12 +497,12 @@ def employee_dashboard(user):
                         f"❌ Remove {task_title}",
                         use_container_width=True,
                     ):
-                        remove_index = i
+                        remove_task_id = task_id
 
             task_name = st.text_input(
                 f"Task Name {i + 1}",
                 value=task["task_name"],
-                key=f"task_name_{i}",
+                key=f"task_name_{task_id}",
                 placeholder="Enter task name",
             )
 
@@ -492,7 +518,7 @@ def employee_dashboard(user):
                 f"Blockers {i + 1}",
                 value=task["blockers"],
                 height=80,
-                key=f"blockers_{i}",
+                key=f"blockers_{task_id}",
                 placeholder="Any blockers for this task?",
             )
 
@@ -506,11 +532,12 @@ def employee_dashboard(user):
                 f"Overall Status {i + 1}",
                 overall_status_options,
                 index=overall_status_options.index(default_status),
-                key=f"overall_status_{i}",
+                key=f"overall_status_{task_id}",
             )
 
             tasks_data.append(
                 {
+                    "id": task_id,
                     "task_name": task_name,
                     "description": description,
                     "blockers": blockers,
@@ -523,10 +550,12 @@ def employee_dashboard(user):
         submitted = st.form_submit_button("Submit / Resubmit Update")
 
     # Store the exact clicked task index, then rerun
-    if remove_index is not None:
+    if remove_task_id is not None:
         st.session_state.task_items = tasks_data.copy()
-        if 0 <= remove_index < len(st.session_state.task_items):
-            st.session_state.task_items.pop(remove_index)
+        st.session_state.task_items = [
+            t for t in st.session_state.task_items
+            if t["id"] != remove_task_id
+        ]
         st.rerun()
 
     if submitted:
@@ -658,14 +687,39 @@ def main():
     with col2:
         display_role = "IT Director" if user["role"] == "manager" else "Employee"
 
-        with col2:
-            with st.popover(f"👤 {user['full_name']} ({display_role})"):
-                st.write(f"**Name:** {user['full_name']}")
-                st.write(f"**Role:** {display_role}")
-                if st.button("Logout", key="header_logout"):
+        with st.popover(f"👤 {user['full_name']} ({display_role})"):
+            st.write(f"**Name:** {user['full_name']}")
+            st.write(f"**Role:** {display_role}")
+
+            st.markdown("---")
+            st.markdown("**🔐 Change Password**")
+
+            current_pwd = st.text_input("Current Password", type="password", key="profile_current_pwd")
+            new_pwd = st.text_input("New Password", type="password", key="profile_new_pwd")
+            confirm_pwd = st.text_input("Confirm New Password", type="password", key="profile_confirm_pwd")
+
+            if st.button("Update Password", key="profile_update_pwd"):
+                if current_pwd != user["password"]:
+                    st.error("Current password is incorrect")
+                elif new_pwd != confirm_pwd:
+                    st.error("New passwords do not match")
+                elif len(new_pwd.strip()) < 4:
+                    st.error("Password must be at least 4 characters")
+                else:
+                    update_password(user["id"], new_pwd.strip())
+                    st.success("Password updated successfully. Please log in again.")
                     logout()
                     st.rerun()
 
+            st.markdown("---")
+
+            if st.button("Logout", key="header_logout"):
+                logout()
+                st.rerun()
+
+    st.markdown("---")
+
+    
     # Dashboard
     if user["role"] == "manager":
         manager_dashboard(user)

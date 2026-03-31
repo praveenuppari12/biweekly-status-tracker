@@ -355,16 +355,7 @@ def login_page():
         else:
             st.error("Invalid username or password.")
 
-    with st.expander("Demo Credentials"):
-        st.write("Manager: j.stebbins@gotion.com / Temp@123")
-        st.write("Employee: p.uppari@gotion.com / Temp@123")
-        st.write("Employee: v.pathuri@gotion.com / Temp@123")
-        st.write("Employee: v.taduru@gotion.com / Temp@123")
-        st.write("Employee: a.ghanem@gotion.com / Temp@123")
-        st.write("Employee: l.wadley@gotion.com / Temp@123")
-        st.write("Employee: d.faulkner@gotion.com / Temp@123")
-        st.write("Employee: g.yan@gotion.com / Temp@123")
-        st.write("Employee: l.wang10@gotion.com / Temp@123")
+    
         
 
 def employee_dashboard(user):

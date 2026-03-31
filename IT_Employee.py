@@ -637,16 +637,98 @@ def manager_dashboard(user):
 def main():
     st.set_page_config(page_title="Biweekly IT Status Tracker", layout="wide")
 
+    # Background + UI Styling
+    st.markdown("""
+    <style>
+
+    /* Main background */
+    /* Main background with subtle geometric pattern */
+    /* FORCE background pattern */
+    html, body, [data-testid="stAppViewContainer"] {
+        background-color: #dfe8f3 !important;
+        background-image:
+            repeating-linear-gradient(
+                45deg,
+                rgba(74,144,226,0.06) 0px,
+                rgba(74,144,226,0.06) 2px,
+                transparent 2px,
+                transparent 28px
+            ),
+            repeating-linear-gradient(
+                -45deg,
+                rgba(74,144,226,0.18) 0px,
+                rgba(74,144,226,0.18) 2px,
+                transparent 2px,
+                transparent 28px
+            ) !important;
+        background-size: auto !important;
+    }
+
+    /* Remove extra white gaps */
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+
+    /* Cards (forms / sections) */
+    div[data-testid="stForm"] {
+        background-color: white;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #ddd;
+    }
+
+    /* Headers look cleaner */
+    h1, h2, h3 {
+        color: #2c3e50;
+    }
+
+    /* Buttons styling */
+    .stButton>button {
+        border-radius: 8px;
+        background-color: #4a90e2;
+        color: white;
+        border: none;
+    }
+    .stButton>button:hover {
+        background-color: #357abd;
+    }
+
+    /* Inputs */
+    input, textarea {
+        border-radius: 6px !important;
+    }
+
+    
+
+    </style>
+    """, unsafe_allow_html=True)
+
     # Hide Streamlit sidebar completely
     st.markdown("""
-        <style>
-            [data-testid="stSidebar"] {
-                display: none !important;
-            }
-            [data-testid="collapsedControl"] {
-                display: none !important;
-            }
-        </style>
+    <style>
+
+    /* Hide sidebar */
+    [data-testid="stSidebar"] {
+        display: none !important;
+    }
+    [data-testid="collapsedControl"] {
+        display: none !important;
+    }
+
+    /* Background */
+    [data-testid="stAppViewContainer"] {
+        background: linear-gradient(135deg, #f5f7fa, #e4ecf7);
+    }
+
+    /* LABELS (Username, Password) */
+    label {
+        font-size: 12px !important;
+        color: #4fc3f7 !important;
+        font-weight: 600;
+    }
+
+    </style>
     """, unsafe_allow_html=True)
 
     init_db()

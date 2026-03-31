@@ -83,8 +83,8 @@ def init_db():
 
     # Demo users
     # Manager
-    seed_user(cur, "manager", "manager123", "Jason Stebbins", "manager")
-
+    cur.execute("DELETE FROM users WHERE username = ?", ("manager",))
+    seed_user(cur, "j.stebbins@gotion.com", "Temp@123", "Jason Stebbins", "manager")
 # Employees with temporary password
     employees = [
         ("p.uppari@gotion.com", "Praveen Kumar Uppari"),
@@ -356,7 +356,7 @@ def login_page():
             st.error("Invalid username or password.")
 
     with st.expander("Demo Credentials"):
-        st.write("Manager: manager / manager123")
+        st.write("Manager: j.stebbins@gotion.com / Temp@123")
         st.write("Employee: p.uppari@gotion.com / Temp@123")
         st.write("Employee: v.pathuri@gotion.com / Temp@123")
         st.write("Employee: v.taduru@gotion.com / Temp@123")
